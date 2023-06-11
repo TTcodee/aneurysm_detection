@@ -4,6 +4,7 @@ clc
 clear
 addpath("srcs\all_func\");
 
+
 imgs = imageDatastore("srcs\imgs", "IncludeSubfolders", false);
 n = numel(imgs.Files);
 
@@ -14,8 +15,9 @@ for i = 1: n
     name = strcat(name, extension);
     savedPath = strcat("srcs\imgs\Filtered\", name);
     img = imread(impath);
-    res = AllFilters.imClose(img);
+    res = AllFilters.wienerFilter(img);
     imwrite(res, savedPath);
 end
 
+rmpath("srcs\all_func\");
 
