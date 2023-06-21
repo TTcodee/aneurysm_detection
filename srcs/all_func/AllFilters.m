@@ -27,7 +27,19 @@ classdef AllFilters
         % Wiener func
         function res = wienerFilter(img)
             img = AllFilters.imagePrepare(img);
-            res = wiener2(img, [2, 1]);
+            res = wiener2(img, [3, 3]);
+        end
+
+        %Bilateral filtering of images with Gaussian kernels
+        function res = bilateralFilter(img)
+            img = AllFilters.imagePrepare(img);
+            dgs = 0.01*diff(getrangefromclass(img)).^2;
+            res = imbilatfilt(img, dgs, 4);
+        end
+
+        function res = medFilter(img)
+           img = AllFilters.imagePrepare(img);
+           res = medfilt2(img, [4, 4]);
         end
     end
 end
