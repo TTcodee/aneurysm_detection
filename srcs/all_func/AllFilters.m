@@ -13,7 +13,7 @@ classdef AllFilters
         function res = imClose(img)
             img = AllFilters.imagePrepare(img);
             img = imbinarize(img);
-            SE = strel('disk', 1);
+            SE = strel('disk', 2);
             res = imclose(255 - img, SE);
             res = 255 - res;
         end
