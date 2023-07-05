@@ -14,8 +14,14 @@ classdef AllFilters
             img = AllFilters.imagePrepare(img);
             img = imbinarize(img, 'adaptive');
             SE = strel('disk', disk_size);
-            res = imclose(255 - img, SE);
-            res = 255 - res;
+            res = uint8(imclose(img, SE));
+        end
+        % imopen func
+        function res = imOpen(img, disk_size)
+            img = AllFilters.imagePrepare(img);
+            img = imbinarize(img, 'adaptive');
+            SE = strel('disk', disk_size);
+            res = uint8(imopen(img, SE));
         end
 
         % gaussian filter
@@ -44,7 +50,7 @@ classdef AllFilters
 
         function res = KmeanFilter(img)
             img = AllFilters.wienerFilter(img, [5 5]);
-            morph_img = AllFilters.imClose(img, 3);
+            morph_img = AllFilters.imOpen(img, 3);
             L = imsegkmeans(img, 3, NumAttempts=10);
 
             cluster_img = get_cluster(img, L, 1);
@@ -59,7 +65,20 @@ classdef AllFilters
                 end
             end
             res = AllFilters.medFilter(min_cluster, [6 10]);
-            
+        end
+
+        %Remove connected component that larger than size
+        function res = rmlarger(img, size)
+            bwimg = imbinarize(img, 'adaptive');
+            cc = bwconncomp(bwimg);
+            numPixels = cellfun(@numel,cc.PixelIdxList);
+            [biggest, idx] = max(numPixels);
+            if (biggest >= size)
+                img(cc.PixelIdxList{idx}) = 0;
+                res = AllFilters.rmlarger(img, size);
+            else
+            res = img;
+            end
         end
     end
 end
