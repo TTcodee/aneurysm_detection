@@ -1,12 +1,12 @@
 classdef Checker
     %CHECKER Summary of this class goes here
     %   Detailed explanation goes here
-    
+
     properties
         groundTruth_path;
         masks_path;
     end
-    
+
     methods
         function obj = Checker(groundTruth_path, target_rgb, masks_path)
             obj.groundTruth_path = groundTruth_path;
@@ -31,7 +31,7 @@ classdef Checker
             end
         end
 
-        function result = check(obj, pred_path)
+        function result = check(obj, pred_path, overlay_path)
             groundTruth = imageDatastore(obj.masks_path);
             preds = imageDatastore(pred_path);
             n = numel(preds.Files);
@@ -44,16 +44,27 @@ classdef Checker
                 result{i, 2} = miss;
                 result{i, 3} = hit / (hit + miss);
                 result{i, 4} = recall;
-                
-
+                make_overlayim(i);
             end
-
+            
+            % ====== Local fuction of Checker.check() =====
+            function make_overlayim(i)
+                 [w, h] = size(hit_mask);
+                 res = cat(3, uint8(hit_mask), uint8(zeros([w, h])), uint8(miss_mask));
+                 res = res.*255;
+                 impath = char(preds.Files(i));
+                 %====Part for initialize name====
+                 [~, name, extension] = fileparts(impath);
+                 name = strcat(name, extension);
+                 savedPath = strcat(overlay_path, name);
+                 imwrite(res, savedPath);
+            end
         end
-        
+
     end
 end
 
-%Local Function
+% ========== Local Function ==========
 
 function res = imApplyFunc(img, f)
 
@@ -67,7 +78,7 @@ for i = 1 : w
             rgb = img(i, j, :);
             res(i, j, :) = f([rgb(1), rgb(2), rgb(3)]);
         end
-         
+
     end
 end
 
@@ -75,7 +86,6 @@ end
 
 %====== Calculate hit and miss in the groundTruth image and precicted image
 function [num_hit, num_miss, recall, hit_mask, miss_mask] = hit_miss_cal(org, pred)
-%==== Find Connected Region ====
 % Initialize size to be equal
 [pred_w, pred_h, ~] = size(pred);
 org = imresize(org, [pred_w, pred_h]);
@@ -88,9 +98,9 @@ n_pred = cc_pred.NumObjects;
 l_org = labelmatrix(cc_org);
 l_pred = labelmatrix(cc_pred);
 
-%==== Check Hit and Miss ====
-hit_mask = 0;
-miss_mask = 0;
+% Check Hit and Miss
+hit_mask = zeros([pred_w, pred_h]);
+miss_mask = hit_mask;
 num_hit = 0;
 for i = 1 : n_pred
     bef = hit_mask;
@@ -100,7 +110,7 @@ for i = 1 : n_pred
         hit_mat = mask_pred & mask_org;
         if (sum(sum(hit_mat)) ~= 0)
             num_hit = num_hit + 1;
-            hit_mask = hit_mask + hit_mat;
+            hit_mask = hit_mask + mask_pred;
             break;
         end
     end
@@ -108,10 +118,10 @@ for i = 1 : n_pred
         miss_mask = miss_mask + mask_pred;
     end
 end
-num_miss = n_pred - num_hit;   
+num_miss = n_pred - num_hit;
 recall = countRecall(l_org, hit_mask) / n_org;
 
-%==== Local function of hitmiss func ====
+% Local function of hitmiss func
     function n_recall = countRecall(l_org, hit_mask)
         intercept = l_org & hit_mask;
         cc = bwconncomp(intercept, 8);
@@ -126,7 +136,7 @@ n = numel(imgs.Files);
 
 for i = 1: n
     impath = char(imgs.Files(i));
-    %====Part for initialize name==== 
+    %====Part for initialize name====
     [~, name, extension] = fileparts(impath);
     name = strcat("", name);
     name = strcat(name, extension);
